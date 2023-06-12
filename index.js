@@ -1,9 +1,13 @@
+//REQUIRE
+
 const express = require('express');
 const app = express();
 const path = require('path');
 const mongoose = require('mongoose');
 const Campground = require('./models/campground');
 const methodOverride = require('method-override');
+const morgan = require('morgan');
+const ejsMate = require('ejs-mate');
 
 mongoose.connect('mongodb://127.0.0.1:27017/pseudoCamp')
 
@@ -13,11 +17,21 @@ db.once("open", () => {
     console.log("Database connected");
 });
 
+app.engine('ejs', ejsMate)
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'))
 
+//MIDDLEWARE
+
 app.use(express.urlencoded({extended: true}))
 app.use(methodOverride('_method'));
+app.use(morgan('tiny'));
+app.use((req, res, next) => {
+    req.requestTime = Date.now();
+    next();
+})
+
+//ROUTES
 
 app.get('/', (req, res) => {
     res.render('home')
@@ -58,6 +72,10 @@ app.delete('/campgrounds/:id', async (req, res) => {
     const { id } = req.params;
     await Campground.findByIdAndDelete(id);
     res.redirect('/campgrounds');
+})
+
+app.use((req, res) => {
+    res.render('404');
 })
 
 app.listen(3000, ()=> {
